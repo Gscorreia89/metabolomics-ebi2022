@@ -1,3 +1,4 @@
 install.packages("knitr")
 install.packages("rmarkdown")
-library('ggplot2')
+install.packages('roxygen2')
+install.packages('ggplot2')
