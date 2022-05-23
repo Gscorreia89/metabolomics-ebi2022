@@ -53,14 +53,12 @@ linearModelAnalysis <- foreach(var=firstMetaboliteColIdx:ncol(lcMSDataset), .com
 
 linearModelAnalysis <- data.frame(linearModelAnalysis)
 linearModelAnalysis[, 2:ncol(linearModelAnalysis)] <- apply(linearModelAnalysis[, 2:ncol(linearModelAnalysis)], 2, as.numeric)
-
 ```
 
 # Plot p-value and t-ratio distributions for Age
 ```{r}
 ggplot(linearModelAnalysis, aes(x=age_pval)) + geom_histogram(fill='steelblue3', col='black', bins=100, alpha=0.6) + xlab('Age p-value') + theme_light()
 ggplot(linearModelAnalysis, aes(x=Age)) + geom_histogram(fill='steelblue3', col='black', bins=100, alpha=0.6) + xlab('Age t-ratio') + theme_light()
-
 ```
 # Plot p-value and t-ratio distributions for Gender
 ```{r}
@@ -77,7 +75,6 @@ BYAge <- p.adjust(linearModelAnalysis$age_pval, method='BY')
 bonferroniGender <- p.adjust(linearModelAnalysis$Gender_pval, method='bonferroni')
 BHGender <- p.adjust(linearModelAnalysis$Gender_pval, method='BH')
 BYGender <- p.adjust(linearModelAnalysis$Gender_pval, method='BY')
-
 ```
 
 # Plot some of the significant features
