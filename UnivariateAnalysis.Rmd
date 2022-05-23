@@ -10,7 +10,7 @@ library(ggplot2)
 library(doParallel)
 library(scales)
 
-registerDoParallel(cores=4)
+registerDoParallel(cores=1)
 ```
 
 
@@ -19,39 +19,16 @@ lcMSDataset <- readr::read_csv('./Data/Dementia_RPOS_XCMS.csv')
 
 firstMetaboliteColIdx <- 12
 ```
+# Linear model analysis
 ```{r}
-linearModelResults <- c()
-
-for (var in firstMetaboliteColIdx:ncol(lcMSDataset)) {
-  
-  featureName <- colnames(lcMSDataset)[var]
-  lmModel <- lm(log(get(featureName) + 1) ~ Age + Gender, data=lcMSDataset)
-  lmModelSummary <- summary(lmModel)
-  fStat <- lmModelSummary$fstatistic
-  r2AOVpval <- pf(fStat[1],fStat[2],fStat[3],lower.tail=F)
-
-  linearModelResults <- rbind(linearModelResults, 
-                              c(Feature=featureName, r2=lmModelSummary$r.squared, Age=lmModelSummary$coefficients['Age', 't value'],
-                                Gender=lmModelSummary$coefficients['GenderMale', 't value'],
-                                r2_pval=r2AOVpval, 
-                                age_pval=lmModelSummary$coefficients['Age', 'Pr(>|t|)'],
-                                Gender_pval=lmModelSummary$coefficients['GenderMale', 'Pr(>|t|)']))
-    
-}
-
-linearModelResults <- data.frame(linearModelResults)
-linearModelResults[, 2:ncol(linearModelResults)] <- apply(linearModelResults[, 2:ncol(linearModelResults)], 2, as.numeric)
-```
-
-
-```{r}
+#define a function to apply to each metabolite and extract effect size estimates and p-values
 fitLMModel <- function(dataset, var) {
   featureName <- colnames(dataset)[var]
   lmModel <- lm(log(get(featureName) + 1) ~ Age + Gender, data=dataset)
   lmModelSummary <- summary(lmModel)
   fStat <- lmModelSummary$fstatistic
   r2AOVpval <- pf(fStat[1],fStat[2],fStat[3],lower.tail=F)
-
+  
   linearModelResults <- c(Feature=featureName, r2=lmModelSummary$r.squared, Age=lmModelSummary$coefficients['Age', 't value'],
                                 Gender=lmModelSummary$coefficients['GenderMale', 't value'],
                                 r2_pval=r2AOVpval, 
@@ -59,10 +36,10 @@ fitLMModel <- function(dataset, var) {
                                 Gender_pval=lmModelSummary$coefficients['GenderMale', 'Pr(>|t|)']) 
   
 return(linearModelResults)
-
+  
 }
 ```
-
+### Apply the linear model analysis function to each MS feature (columns)
 ```{r}
 linearModelAnalysis <- foreach(var=firstMetaboliteColIdx:ncol(lcMSDataset), .combine=rbind) %dopar% {
     tryCatch({
@@ -77,17 +54,15 @@ linearModelAnalysis <- foreach(var=firstMetaboliteColIdx:ncol(lcMSDataset), .com
 linearModelAnalysis <- data.frame(linearModelAnalysis)
 linearModelAnalysis[, 2:ncol(linearModelAnalysis)] <- apply(linearModelAnalysis[, 2:ncol(linearModelAnalysis)], 2, as.numeric)
 
-
 ```
 
-# Plot p-value and t-ratio for Age
+# Plot p-value and t-ratio distributions for Age
 ```{r}
 ggplot(linearModelAnalysis, aes(x=age_pval)) + geom_histogram(fill='steelblue3', col='black', bins=100, alpha=0.6) + xlab('Age p-value') + theme_light()
 ggplot(linearModelAnalysis, aes(x=Age)) + geom_histogram(fill='steelblue3', col='black', bins=100, alpha=0.6) + xlab('Age t-ratio') + theme_light()
 
 ```
-# Plot p-value and t-ratio for Gender
-
+# Plot p-value and t-ratio distributions for Gender
 ```{r}
 ggplot(linearModelAnalysis, aes(x=Gender_pval)) + geom_histogram(fill='steelblue3', col='black', bins=100, alpha=0.6) + xlab('Gender p-value') + theme_light()
 ggplot(linearModelAnalysis, aes(x=Gender)) + geom_histogram(fill='steelblue3', col='black', bins=100, alpha=0.6) + xlab('Gender t-ratio') +theme_light()
